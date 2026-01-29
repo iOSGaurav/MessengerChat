@@ -1,0 +1,504 @@
+
+iOS WCAG Accessibility Auditor MCP Tool
+
+(AI-Enhanced + Snapshot Diffing + VoiceOver Evidence + ZIP Output)
+
+You are a Principal iOS Accessibility Engineer, XCUITest/Appium Automation Architect, WCAG 2.2 AA Auditor, AI Remediation Specialist, and MCP (Model Context Protocol) Tooling Expert.
+
+Your task is to DESIGN AND IMPLEMENT a production-ready MCP tool written in Python 3.10+ that performs fully automated accessibility testing for iOS applications, validates against WCAG 2.2 (A & AA) and iOS accessibility best practices, captures evidence artifacts, supports snapshot-based UI diffing, includes Partial Blind Accessibility analysis, and provides a dedicated VoiceOver Evidence Mode.
+
+The final output MUST be packaged as a single downloadable ZIP containing all source code, documentation, examples, and sample artifacts.
+
+This is a standalone, non-SaaS, automation-first tool designed to run locally or in CI/CD.
+
+⸻
+
+1️⃣ TOOL IDENTITY
+	•	Tool Name: ios_wcag_accessibility_auditor
+	•	Tool Type: MCP Python Tool
+	•	Platform: iOS ONLY
+	•	Python: 3.10+
+
+Core Technologies
+	•	Appium
+	•	XCUITest
+	•	WebDriverAgent (WDA)
+	•	MCP Server Protocol
+	•	Optional LLM / AI plugin layer
+	•	Snapshot diffing engine (UI tree + screenshots)
+
+⸻
+
+2️⃣ NON-NEGOTIABLE REQUIREMENTS
+
+MUST
+	•	Real Appium + XCUITest sessions
+	•	Automatic app launch and traversal
+	•	Deterministic WCAG rule engine
+	•	Evidence capture (screenshots, page source, element metadata)
+	•	Optional AI (advisor only)
+	•	Snapshot-based diffing between runs
+	•	Partial Blind Accessibility analysis
+	•	VoiceOver Evidence Mode
+	•	JSON + HTML + optional PDF reports
+	•	CI-friendly execution
+	•	Final ZIP output
+
+MUST NOT
+	•	No Android
+	•	No SaaS
+	•	No fake data
+	•	No AI-only compliance decisions
+	•	No missing files
+
+⸻
+
+3️⃣ MCP CONTRACT (MANDATORY)
+
+Implement an MCP server exposing these tools:
+
+validate_environment() -> dict
+
+Checks:
+	•	Appium reachable
+	•	Xcode CLI tools available (xcrun)
+	•	iOS simulators available
+	•	WDA readiness hints (best-effort)
+Return actionable diagnostics and remediation tips.
+
+list_targets() -> dict
+
+Returns:
+	•	Available simulators
+	•	Connected devices (best-effort)
+
+run_audit(config: dict) -> dict
+
+Pipeline:
+	1.	Launch app
+	2.	Optional onboarding/login seeding
+	3.	Screen exploration
+	4.	WCAG & a11y audits
+	5.	VoiceOver evidence collection
+	6.	Snapshot capture
+	7.	Report generation
+Returns summary + artifact paths.
+
+run_diff(baseline_dir: str, candidate_dir: str, config: dict) -> dict
+
+Produces:
+	•	Accessibility tree diffs
+	•	Screenshot diffs (heatmaps/masks)
+	•	Regression summaries
+Returns diff report paths.
+
+MCP Entry
+
+Must run:
+
+python -m ios_wcag_accessibility_auditor.mcp_server
+
+
+⸻
+
+4️⃣ iOS APP LAUNCH
+
+Support:
+	•	bundleId
+	•	.app (simulator)
+	•	.ipa (if environment allows; otherwise error clearly)
+
+Capabilities must include:
+	•	automationName = XCUITest
+	•	deviceName, platformVersion, udid
+	•	WDA stability options (timeouts, reuse, reset)
+	•	Alert handling best-effort
+
+⸻
+
+5️⃣ USER FLOW
+
+Interactive
+	•	Select simulator/device
+	•	Choose app launch method
+	•	Choose seeding strategy:
+	•	Manual login (pause until READY)
+	•	Seed steps JSON
+	•	Deep link (optional)
+	•	Configure exploration budgets
+	•	Start audit
+
+CI Mode
+	•	Config-only
+	•	Deterministic output directories
+	•	Exit code based on severity threshold
+
+⸻
+
+6️⃣ CONFIGURATION (config.yaml) — MUST IMPLEMENT
+
+Include full support for:
+	•	Exploration limits
+	•	Safety denylist
+	•	WCAG thresholds
+	•	Partial blind profiles
+	•	Snapshot diffing
+	•	VoiceOver evidence
+	•	AI provider & privacy controls
+
+Example config.yaml (must be supported)
+
+appium_server_url: "http://127.0.0.1:4723"
+run_name: "MyApp_iOS_WCAG_Audit"
+output_dir: "./reports"
+
+ios:
+  target_kind: "simulator"          # simulator | device
+  device_name: "iPhone 15"
+  platform_version: "17.0"
+  udid: "auto"
+  launch:
+    method: "bundle_id"             # bundle_id | app_path | ipa_path
+    bundle_id: "com.example.app"
+    app_path: ""                    # for .app
+    ipa_path: ""                    # for .ipa
+  session:
+    no_reset: true
+    full_reset: false
+    new_command_timeout: 180
+    wda_launch_timeout: 120000
+    wda_connection_timeout: 120000
+    use_new_wda: false
+
+exploration:
+  max_screens: 60
+  max_depth: 10
+  per_screen_action_budget: 35
+  global_time_budget_minutes: 20
+  allow_scroll: true
+  allow_swipe: true
+  avoid_text_input: true
+  back_strategy_order: ["nav_back", "close_button", "swipe_back"]
+
+safety:
+  safe_mode: true
+  denylist_keywords: ["delete","logout","pay","purchase","unsubscribe","cancel","remove"]
+  allowlist_keywords: []
+  risky_action_requires_confirm: false
+
+audit:
+  wcag_version: "2.2"
+  levels: ["A", "AA"]
+  include_best_practices: true
+  rules:
+    min_target_size_pt: 44
+    duplicate_label_threshold: 2
+    min_contrast_ratio_normal_text: 4.5
+    min_contrast_ratio_large_text: 3.0
+    min_non_text_contrast: 3.0
+  severity_threshold_exit_code: "critical"   # none|minor|major|critical|blocker
+
+partial_blind:
+  enabled: true
+  scenarios:
+    - low_vision
+    - color_vision_deficiency
+    - reduced_contrast_sensitivity
+    - magnification_user
+    - large_text_user
+  snapshot_profiles:
+    - name: "default"
+    - name: "large_text"
+      notes: "Use accessibility text size profile if available; otherwise manual-precondition mode."
+    - name: "high_contrast"
+      notes: "Increase Contrast / Reduce Transparency if supported; else manual-precondition mode."
+  manual_precondition_mode: true
+  scoring:
+    enabled: true
+    weights:
+      truncation_overlap: 3
+      small_touch_targets: 3
+      low_contrast: 4
+      icon_only_controls: 2
+      color_only_reliance: 2
+
+diffing:
+  enabled: true
+  baseline_run_dir: ""                 # optional
+  tree_diff_mode: "semantic"           # semantic | raw
+  screenshot_diff:
+    enabled: true
+    threshold: 0.12
+  ignore_dynamic_text_patterns:
+    - "\\b\\d{1,2}:\\d{2}\\b"
+    - "\\b\\d+\\b"
+
+voiceover:
+  enabled: true
+  mode: "best_effort"                  # best_effort | manual_assist | metadata_only
+  per_screen:
+    capture_rotor_presence: true
+    record_screen_reader_script: true
+    capture_spoken_output: true
+  rotor:
+    expected_categories: ["Headings","Links","Form Controls"]
+    strict: false
+  scripts:
+    max_steps_per_screen: 8
+    include_back_navigation_step: true
+    include_modal_dismiss_step: true
+  capture:
+    system_logs:
+      enabled: true
+      collect_duration_seconds: 4
+    audio:
+      enabled: false
+      method: "simulator_loopback"     # simulator_loopback | external | none
+
+ai:
+  enabled: false
+  provider: "openai"                   # openai | azure_openai | ollama | custom_http | none
+  model: "gpt-4o-mini"
+  timeout_seconds: 20
+  max_retries: 2
+  features:
+    label_quality: true
+    remediation_generation: true
+    heuristic_explanations: true
+    risk_ranking: true
+  privacy:
+    send_screenshots: false
+    send_full_page_source: false
+    send_element_metadata: true
+    redact_sensitive_text: true
+
+report:
+  formats: ["json","html","pdf"]
+  include_screenshots: true
+  include_page_source: true
+  include_bounding_boxes: true
+  include_diff_section: true
+  include_voiceover_section: true
+
+
+⸻
+
+7️⃣ AUTOMATED SCREEN EXPLORATION
+
+Implement a graph-based traversal engine:
+	•	Stable screen fingerprinting (normalized XML + accessible elements signature)
+	•	Loop detection
+	•	Safe action prioritization (denylist/allowlist)
+	•	Scroll handling with bounded steps
+	•	Back navigation:
+	•	Nav bar back
+	•	Modal dismissal (Close/Done/Cancel)
+	•	Swipe-back gesture best-effort
+
+Capture per screen:
+	•	Screenshot
+	•	Page source XML
+	•	Element inventory JSON (role/type, label/value/hint, traits, enabled, frame/bounds)
+
+⸻
+
+8️⃣ WCAG + A11Y RULE ENGINE (MANDATORY)
+
+Deterministic rules mapped to WCAG 2.2:
+	•	Missing accessible name (4.1.2)
+	•	Label in Name mismatch (best-effort) (2.5.3)
+	•	Target size (2.5.8)
+	•	Duplicate / ambiguous labels (2.4.6, 3.3.2)
+	•	Focus order & traps (best-effort) (2.4.3, 2.1.2)
+	•	Resize text / truncation (best-effort) (1.4.4, 1.4.10)
+	•	Contrast (heuristic + confidence) (1.4.3, 1.4.11)
+	•	Info & relationships (best-effort) (1.3.1)
+
+Each finding includes:
+	•	WCAG ID + level
+	•	Severity (Blocker/Critical/Major/Minor)
+	•	Confidence (1.0 deterministic; <1.0 heuristic/AI)
+	•	Evidence paths (screenshot, XML, overlays)
+	•	SwiftUI + UIKit fixes
+	•	Verification steps (VoiceOver)
+
+⸻
+
+9️⃣ PARTIAL BLIND ACCESSIBILITY MODULE
+
+Analyze users with:
+	•	Low vision
+	•	Reduced contrast sensitivity
+	•	Color vision deficiency
+	•	Magnification usage
+	•	Large text settings
+
+Features:
+	•	Multi-profile snapshots
+	•	Truncation/overlap under large text
+	•	Color-only reliance detection (heuristic)
+	•	Small text / spacing risks (heuristic)
+	•	Dedicated Partial Blind Accessibility Score (0–100)
+
+Must clearly label which checks are deterministic vs heuristic.
+
+⸻
+
+🔟 SNAPSHOT-BASED UI DIFFING
+
+Per screen snapshot:
+	•	Screenshot
+	•	XML page source
+	•	Semantic accessibility snapshot JSON (normalized roles/names/bounds/states)
+
+Diff engine:
+	•	Tree diffs (labels, roles, exposure, state)
+	•	Screenshot diffs (heatmaps/masks)
+	•	Regression vs improvement classification
+	•	Ignore dynamic content via regex patterns
+
+Outputs:
+	•	diff_report.json
+	•	diff_report.html
+	•	Diff images per changed screen
+
+⸻
+
+1️⃣1️⃣ VOICEOVER EVIDENCE MODE (MANDATORY)
+
+Implement VoiceOver Evidence Mode:
+
+Capabilities:
+	•	Screen reader scripts per screen
+	•	Expected announcements (deterministic from metadata)
+	•	Observed announcements (best-effort)
+	•	Rotor presence checks:
+	•	Metadata inference
+	•	Log hints
+	•	Manual-assist confirmation (when enabled)
+	•	Spoken output capture placeholders
+	•	Optional audio capture (opt-in)
+
+Artifacts per screen:
+
+voiceover/
+  vo_script.json
+  vo_script.md
+  vo_expectations.json
+  vo_observed.json
+  vo_audio.m4a (optional)
+  vo_logs.txt
+
+Scripts must record:
+	•	Focus navigation
+	•	Activation
+	•	Expected labels/roles/states
+	•	Back/dismiss steps
+
+Reports must include a per-screen “VoiceOver Evidence” section and clearly label evidence type:
+	•	deterministic / observed / heuristic
+
+⸻
+
+1️⃣2️⃣ OPTIONAL AI / LLM LAYER
+
+AI must be:
+	•	OFF by default
+	•	Advisory only
+	•	Auditable & privacy-controlled
+
+AI use cases:
+	•	Label quality evaluation (ambiguous vs meaningful)
+	•	Remediation generation (SwiftUI/UIKit code)
+	•	Heuristic explanation (contrast/focus/truncation)
+	•	Risk ranking for exploration actions
+
+AI outputs:
+	•	Strict JSON only
+	•	Confidence scores
+	•	Clear labeling in reports
+	•	Pydantic schema validation + fallback on failure
+
+⸻
+
+1️⃣3️⃣ REPORTING
+
+Generate:
+	•	report.json
+	•	report.html
+	•	report.pdf (optional)
+	•	scorecard.json
+	•	partial_blind_scorecard.json
+	•	diff_report.json/html (when diffing enabled)
+
+HTML must include:
+	•	Dashboard
+	•	Per-screen issues
+	•	WCAG filtering
+	•	VoiceOver evidence sections
+	•	Snapshot diff visualizations
+
+⸻
+
+1️⃣4️⃣ DOCUMENTATION
+
+Generate full docs:
+	•	Getting started
+	•	Configuration
+	•	Exploration engine
+	•	WCAG mapping
+	•	Partial blind accessibility
+	•	Snapshot diffing
+	•	VoiceOver evidence
+	•	AI & privacy
+	•	CI integration
+	•	Troubleshooting
+
+⸻
+
+1️⃣5️⃣ REPOSITORY STRUCTURE
+
+Produce complete repo:
+
+ios_wcag_accessibility_auditor/
+  README.md
+  LICENSE
+  pyproject.toml
+  docs/
+  examples/
+  ios_wcag_accessibility_auditor/
+    mcp_server.py
+    cli.py
+    drivers/
+    explorer/
+    audit/
+    partial_blind/
+    diffing/
+    voiceover_evidence/
+    ai/
+    reports/
+    utils/
+
+
+⸻
+
+1️⃣6️⃣ ZIP PACKAGING (MANDATORY)
+
+The final response MUST include:
+	•	A single downloadable ZIP
+	•	Full source code
+	•	Docs
+	•	Example configs
+	•	Empty sample report folders
+	•	Smoke-test config
+
+Return Downloadable ZIP File
+
+⸻
+
+1️⃣7️⃣ FINAL OUTPUT RULES
+	•	Do NOT omit files
+	•	Do NOT summarize
+	•	Do NOT replace logic with descriptions
+	•	Do NOT hide limitations
+	•	Clearly mark AI & heuristic findings
